@@ -25,35 +25,6 @@ The profile defines:
 
 Status of unresolved items, presentation gaps (JSON-Schema/CDDL formalisation, additional vendor cookbooks, Strict / Behörde profile bodies, PQC migration, regulator-bound audit-export format) is enumerated at §13.
 
-How CCPE-F Works in 60 Seconds (Informative)
-
-A worked example - a personal-shopper agent buys a €40 grocery order on behalf of its principal at vendor acme-grocery:
-
-   [principal]
-       │ issues
-       ▼
-  [Authority]──────────► mandate (€60 cap, category=grocery, vendors=[acme-*], 1h)
-       │
-       │  agent picks acme-grocery, builds cart of €40
-       ▼
-  [Authority]──────────► cart-mandate (parent=mandate, vendor=acme-grocery, total=€40)
-       │
-       │  agent selects tokenised payment-method pm_xxxx
-       ▼
-  [Authority]──────────► payment-mandate (parent=cart, payment_method=pm_xxxx, single_use)
-       │
-       ▼
-  [Commerce-PEP] ── Phase 1 (RFC 0117 16-check) ── permit
-       │
-       │ (only on permit/constrain)
-       ▼
-  [Commerce-PDP @ acme-grocery] ── Phase 2 (platform policy) ── permit
-       │
-       ▼
-  reconciled verdict = permit  ──►  vendor charge proceeds
-   audit:    commerce.action_decided + commerce.platform_bound.decided
-   metering: commerce.decision.metered  (one record per Phase-2 call)
-
 Three things that make this profile distinct from a "just present a JWT" flow:
 
 •	Three sequential mandates (mandate / cart / payment), each parent-bound, so the principal's delegation can't be silently widened mid-flow.
