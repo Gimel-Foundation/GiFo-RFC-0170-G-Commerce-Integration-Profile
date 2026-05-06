@@ -8,12 +8,19 @@ Abstract of RFC: CCPE-F (G-Commerce) is the commerce-authorization profile of th
 The profile defines:
 
 •	a Commerce-Mandate envelope (a Power-of-Attorney credential per RFC 0115, specialised for commerce);
+
 •	a three-phase decision surface - mandate → cart → payment — with order-preservation as an integrity invariant;
+
 •	a bipolar enforcement chain — Power-PEP (credential-bound, Phase 1) followed by Commerce-PDP (platform-bound, Phase 2), reconciled by more-restrictive-wins;
+
 •	a per-Phase-2-call metering hook with three open-core symmetry invariants;
+
 •	a single normative integration scenario over the Universal Commerce Protocol (UCP) substrate via a Foundation-owned vendor-extension capability, with informative cookbooks for Stripe, Shopify, Amazon Pay, Open Banking / PSD2, and the W3C Payment Request API.
+
 •	a deployment-scenario taxonomy — S1 (pure platform-native, no Foundation artefact), S2 (two-artefact via the §4 UCP vendor-extension capability, Recommended and the conformant scenario), S3 (all-in-one merged-credential where the vendor extends its native payment artefact with PoA-shape attributes inline) - with the in-scope-of-RFC ≠ conformant-to-G-Commerce distinction made explicit;
+
 •	a seven-disadvantage structural critique of the S3 single-artefact shortcut (cap-and-scope drift, missing principal-delegation event, three-phase chain absence, lifecycle entanglement, cross-vendor interoperability break, governance-model-vs-credential-format category error, and the Phase-2 artefact-discipline cannot-supply-Phase-1 result) closing with an explicit non-conformance statement;
+
 •	a scenario-keyed conformance mapping (§4.5a) requiring every G-Commerce Conformance Statement to name its deployment scenario, with the audit-trail field `ccpe_f_scenario` reserved on the wire.
 
 Status of unresolved items, presentation gaps (JSON-Schema/CDDL formalisation, additional vendor cookbooks, Strict / Behörde profile bodies, PQC migration, regulator-bound audit-export format) is enumerated at §13.
