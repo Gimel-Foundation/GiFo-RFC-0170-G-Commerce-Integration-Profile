@@ -81,7 +81,7 @@ its principal at vendor acme-grocery:
    [Authority]──────────► payment-mandate (parent=cart, payment_method=pm_xxxx, single_use)
         │
         ▼
-   [Commerce-PEP] ── Phase 1 (RFC 0117 16-check) ── permit
+   [Commerce-PEP] ── Phase 1 (RFC 0117 17-check) ── permit
         │
         │ (only on permit/constrain)
         ▼
