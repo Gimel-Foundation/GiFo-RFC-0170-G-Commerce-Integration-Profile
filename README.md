@@ -1,4 +1,4 @@
-# GiFo-RFC-0170 (V0.9.1 - Working Draft – Under Review)
+# GiFo-RFC-0170 (V0.9.2 - Working Draft – Under Review)
 
 G-Commerce Integration Profile - Combined Credential- and Platform-bound Enforcement (CCPE-F)
 
