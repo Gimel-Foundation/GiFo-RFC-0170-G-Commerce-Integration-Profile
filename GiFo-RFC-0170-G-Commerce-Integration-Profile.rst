@@ -213,6 +213,8 @@ Appendixes:
 * Appendix C — Vendor Cookbook: Amazon Pay (Informative, Preliminary)
 * Appendix D — Vendor Cookbook: Open Banking / PSD2 (Informative, Preliminary)
 * Appendix E — Vendor Cookbook: W3C Payment Request API (Informative, Preliminary)
+* Appendix F — Vendor Cookbook: AP2 (Informative, Preliminary)
+* Appendix G — Use-Case Cookbook: s-you / EUDIPal Scoped Mandate (Informative, Preliminary)
 
 ----
 
@@ -2512,6 +2514,217 @@ The browser intermediary is outside the deployment's trust boundary; the §6.3
 mutual-TLS posture does not extend across the user-agent layer. This is an
 inherent architectural limitation of the W3C Payment Request API, not a
 CCPE-F-NCO violation.
+
+
+## Appendix F — Protocol Cookbook: AP2 (Informative, Preliminary)
+=================================================================
+
+
+> **Status and scope.** This appendix describes a proposed CCPE-F integration, not an implemented or vendor-reviewed adapter. Its requirements concern the deployment's integration, not AP2 or AP2 implementers generally. Sections 1.2 and 1.5 remain applicable. Native AP2 support alone does not establish CCPE-F conformance; the §4 UCP vendor-extension contract remains the normative integration path.
+>
+> **Licensing and provenance.** The RFC's express licence grants remain unaffected. Those grants do not resolve separate questions concerning the provenance of AP2 concepts or relevant earlier GAuth disclosures. The Foundation maintains its request to reference earlier disclosures appropriately, irrespective of whether AP2 is deployed with CCPE integration.
+>
+> **Rights reservation.** Technical comparison does not establish originality, novelty, legal prior-art status, patentability, ownership or freedom to operate. This appendix makes no infringement finding and grants no additional rights beyond applicable express licence terms. These reservations do not alter the legal effect of public disclosures or applicable limitation periods.
+
+### F.1 Reviewed Boundary and Setup
+-----------------------------------
+
+The reviewed AP2 v0.2 material defines Checkout and Payment Mandates, including open and closed forms, explicit consent, agent delegation, deterministic constraint checks and cumulative recurring-payment budgets. Do not substitute the older Intent/Cart/Payment description for this edition. AP2 is not characterized here as authentication-only, without budgets, or necessarily S3. Neither does this review establish S2 conformance.
+
+Before implementation, pin the AP2 version and authorization model:
+
+- **User Credential:** verify the external issuer, trusted-surface/user-approved delegation, key binding and applicable agent action.
+- **Trusted Agent Provider:** document reliance on the provider's consent and signing controls. Do not silently treat its payment approval as a separate principal-authority verdict.
+
+For this integration, authority originates with a concrete acting person. Where that person acts for a company, verify representative capacity and scope separately from identity.
+
+Configure the separate Authority, Commerce-Runtime and Console roles, trust roots, status sources, authoritative budget owner and adapter permissions. Identify the two distinct artifacts required by S2: the principal-derived G-Commerce authority credential and the applicable platform-side credential/capability under §4, including their issuers, validity and action binding.
+
+Register the relevant Commerce-PDP and expose the existing §4 UCP vendor-extension contract. This appendix creates no AP2 extension namespace or endpoint.
+
+### F.2 Mandate and Evidence Mapping
+------------------------------------
+
+This mapping is conceptual; the schemas are not asserted to be interchangeable.
+
+| G-Commerce object or decision | AP2 counterpart / integration responsibility |
+|---|---|
+| Mandate-class authority | Bind principal-approved shopping scope to verified AP2 delegation evidence; do not blindly copy agent-supplied fields |
+| Cart-class authority | Bind the selected basket, merchant, currency, total and conditions to the relevant closed Checkout Mandate |
+| Single-use payment-class authority | Bind one authorized payment action to its AP2 Payment Mandate and verified checkout linkage |
+| Parent chain and current authority | Retain and check G-Commerce predecessors independently; an AP2 signature does not establish that upstream organizational authority remains current |
+| Phase-1 verdict | Power-PEP result for the exact action, agent and authority chain |
+| Phase-2 verdict | Documented adapter mapping of actual commerce/payment checks into §4.4, not an invented AP2-native verdict field |
+| Audit correlation | Authenticated AP2 mandate/transaction references linked to G-Commerce identifiers, both decisions and the executor outcome |
+
+An AP2 object may serve as supporting evidence only after verification of its origin, scope and applicability. Issuing a G-Commerce mandate from that evidence requires authorized issuance: translating fields cannot manufacture missing principal consent.
+
+Preserve signatures over original objects. Keep adapter correlations separately unless the selected protocol expressly permits an extension. Two software components or two logged decisions do not, by themselves, establish the two-artifact S2 architecture.
+
+### F.3 Pre-Execution Sequence
+------------------------------
+
+1. Authenticate the principal and, where applicable, representative capacity. Obtain the exact approved scope and create the authorized G-Commerce chain.
+2. Verify the applicable AP2 delegation, issuer/provider trust, key binding and checkout/payment linkage under the selected authorization model.
+3. Freeze the action binding: agent, principal, merchant, basket/checkout, amount, currency, instrument scope and relevant mandate versions.
+4. Run Phase 1 with current ancestors, scope narrowing and validity checks. Denial stops the dependent commerce/payment invocation.
+5. Invoke Phase 2 through the §4 integration, evaluating actual merchant/processor constraints for the same action. Reconcile under §2.5; unresolved required checks do not authorize payment.
+6. At the protected dispatch boundary, revalidate relevant authority and reserve or consume the operation consistently with the authoritative budget and single-use controls. A previous decision is not indefinite permission.
+7. Send the bound request through the executor's supported interface using a durable operation identity. If the outcome is uncertain, recover under that identity rather than creating a fresh charge.
+8. Reconcile the actual executor outcome and authenticated evidence with both decisions. A successful charge is an execution outcome, not a retroactive authority grant.
+
+If an implementation offers only an irreversible charge call and no usable pre-execution permission boundary, do not call it merely to obtain a Phase-2 verdict. Provide an effective controlled adapter/boundary or withhold the relevant conformance claim.
+
+### F.4 Revocation, Budgets and Audit
+-------------------------------------
+
+Subscribe to Authority lifecycle changes and map affected descendants to AP2-side and executor-side operations. Use only cancellation or management interfaces actually provided by the selected implementation. AP2 support alone does not establish a universal cancellation API.
+
+Record unavailable cancellation and terminal settlement explicitly. Revocation prevents affected future execution; completed settlement requires a separate recovery or refund process.
+
+AP2 cumulative-budget controls remain applicable. Establish how they reconcile with G-Commerce reservations so that a second native or API path cannot spend outside the common bound. Neither two separate counters nor a single-use mandate proves atomic cross-agent accounting.
+
+Correlate §3.4 records, both decisions, mandate references, operation identity, reservations, revocation ordering and settlement outcome. Preserve existing event names; adapter diagnostic labels remain implementation-local unless separately standardized.
+
+Missing evidence is an evidence-closure failure, not proof of a particular non-conformance variant without the corresponding causal test.
+
+### F.5 Worked Acceptance Tests
+-------------------------------
+
+| Scenario | Required evidence or result |
+|---|---|
+| EUR 25 authorized basket under a EUR 60 cap | Authentic delegation, matching checkout/payment binding, both decisions and one executor outcome |
+| Merchant refuses an otherwise authorized purchase | Final denial; principal permission cannot override platform refusal |
+| Signed EUR 25 checkout reused for EUR 40 | Binding mismatch rejected before payment |
+| EUR 50 remaining; two concurrent EUR 40 actions | At most one succeeds; reservations and recovery preserve the common bound |
+| Response lost after charge | Retry resolves to one logical operation, one payment and one debit |
+| Ancestor revoked before dispatch | Dependent dispatch blocked; any earlier terminal execution recorded separately |
+
+These are test recipes, not reported test results. Formal conformance also requires §§4.5–4.6 and all applicable cryptographic, lifecycle and audit requirements.
+
+### F.6 Sources and Edition Limits
+----------------------------------
+
+Reviewed source baseline: AP2 `specification.md`, `agent_authorization.md`, `payment_mandate.md` and `implementation_considerations.md`, accessed 15 October 2026:
+
+- https://github.com/google-agentic-commerce/AP2/tree/e1ea56db72a6385bce3e5c1112b3a56ce60acb43/docs/ap2
+
+The recorded source comparison found those documents identical at the then-resolvable v0.2.0 tag, commit `b4587ac1d055888a73b4b21750973cffba961793`. This does not authenticate historical tag immutability or establish a patent priority date.
+
+AP2's contribution to FIDO's standards process does not establish that the reviewed repository has migrated:
+
+- https://fidoalliance.org/fido-alliance-to-develop-standards-for-trusted-ai-agent-interactions/
+
+Recheck the selected implementation and applicable licence terms before deployment. The source review is edition-specific, not a statement about every past or future AP2 implementation.
+
+
+
+## Appendix G — Use-Case Cookbook: s-you / EUDIPal Scoped Mandate (Informative, Preliminary)
+============================================================================================
+
+
+> **Status and scope.** This appendix describes a proposed CCPE-F binding to a documented banking/commerce proof of concept. It is not an implemented or vendor-reviewed adapter, a new protocol specification, or a statement that Sparkasse, s-you or EUDIPal adopts G-Commerce. Sections 1.2 and 1.5 remain applicable. Native s-you support alone does not establish CCPE-F conformance; §4 remains the normative integration path.
+>
+> **Licensing and rights reservation.** The RFC's express licence grants remain unaffected. Describing this integration grants no additional rights beyond applicable express licence terms and does not establish originality, novelty, legal prior-art status, patentability, ownership or freedom to operate. 
+
+### G.1 Current Implementation versus Target
+--------------------------------------------
+
+s-you is treated as an implementation/use case, not a standalone protocol peer of AP2. The reviewed documentation describes a bank-held scoped mandate using EUDI/PaSO/SPAA concepts and simulated SCT Inst settlement.
+
+Its current interfaces are custom PoC interfaces. “AP2 for external agents” and UCP merchant integration are roadmap items. Do not describe the current PoC as already inheriting all AP2 properties.
+
+| Boundary | Documented current PoC | Target / integration work |
+|---|---|---|
+| Bank and merchant | Mocks with publicly documented interfaces; no real money movement | Authenticated production services and actual payment rails |
+| Customer consent | Local device authentication, posted scope hash and authentication-method claims | Bank-verifiable OpenID4VP/PaSO mandate authorization |
+| Agent/operator identity | Separate agent key; self-issued credential checked for consistency | Operator-issued EBW credential with verified trust and status |
+| Merchant scope | Restrictions supplied by the agent | Independently proved mandate presentation |
+| Merchant approval | Signed attestation verified by wallet client | Independently enforced binding of approval to authorized action and payment |
+| Revocation | Bank-held mandate becomes revoked | Demonstrated ordering, freshness and any cross-operator/descendant propagation |
+
+The recipe concerns an authorized test deployment. Public mock endpoints are documentation references, not permission to create mandates, revoke others' records or conduct adversarial testing.
+
+### G.2 Roles and Setup
+-----------------------
+
+Retain the bank as custodian of its spending mandate. Custody does not require replacing the bank, EUDI wallet or payment rails.
+
+Separately identify the principal-derived authority issuer and its evidence. Establish the acting person's representative capacity where the account represents a company.
+
+Keep the G-Commerce Authority, Commerce-Runtime and Console roles distinct. Identify the separate principal-derived authority credential and platform-side credential/capability required by §4, including their issuers, validity and binding to the proposed action. The bank/merchant split alone does not prove the two-artifact S2 architecture.
+
+Define a deployment-controlled Commerce-PDP adapter that combines applicable merchant goods and bank payment decisions without allowing either to override Phase-1 denial.
+
+Authenticate production callers and privileged lifecycle operations. Configure issuer and merchant signing-key trust, status verification, exact-consent validation, bank account authority and permitted payment routes. Do not carry the public mock's unauthenticated management surface into production.
+
+### G.3 Proposed Object Mapping
+-------------------------------
+
+| s-you object or interface | G-Commerce binding / unresolved requirement |
+|---|---|
+| `POST /mandate-requests`, `transaction_data` | Bind approved payment and functional scopes to authorized mandate-class issuance; retain exact consent evidence |
+| `POST /mandates/authorize` | Bank activation alone does not establish independently verified principal authority; validate bank-verifiable consent |
+| Bank `mandate_id` and agent key | Correlate with the authorized G-Commerce chain and agent identity; identifiers are not bearer authority |
+| `POST /attest`, signed attestation | Bind the cart-class action to merchant, basket hash, amount, mandate and authenticated scope/version |
+| `POST /payments`, `agent_proof` | Bind a single-use payment-class operation to the exact approved basket, merchant, amount and attestation |
+| `POST /mandates/{mandate_id}/revoke` | Authenticate lifecycle operations; withdraw affected future permissions and record in-flight/terminal outcomes |
+| Bank activity/receipt | Correlate with §3.4 decisions and operation identity; a simulated receipt is not real settlement evidence |
+
+This mapping adds no fields to s-you's API. Where its current contract lacks authoritative scope/version or idempotency bindings, provide a specified trusted adapter record and verifier path, or agree an interface extension. Do not represent an unsupported field or endpoint as an existing feature.
+
+### G.4 Purchase Sequence
+-------------------------
+
+1. The customer approves, for example, EUR 60 per purchase and EUR 300 total, with explicit merchant and goods restrictions. Verify exact consent and create/correlate the principal-origin authority and bank mandate.
+2. Obtain the proposed basket. Verify Phase-1 authority for each governed action before invoking its corresponding downstream operation. Earlier shopping permission does not authorize payment.
+3. Present independently authenticated functional scope to the merchant. Do not rely on the agent to preserve the original exclusions.
+4. Verify the merchant's attestation at a trusted enforcement component independent of the agent's assertions. Check signing authority and the basket, amount, merchant, mandate and scope/version binding. The bank need not receive plaintext basket contents if authenticated evidence supplies the necessary linkage.
+5. For payment, run current Phase 1 against the exact cart/payment chain, then obtain the applicable bank/merchant Phase-2 verdict through the §4 UCP binding. The proposed adapter and UCP path are not claimed as deployed s-you features.
+6. Reconcile both phases, reserve the authoritative budget and enforce single use at the actual payment dispatch boundary. Resolve the mock's combined check/pay behavior into a safe pre-execution gate for real settlement. Never perform an irreversible payment merely to discover whether it was allowed.
+7. Submit the bound agent-signed payment request. Recover uncertain results under one operation identity, reconcile settlement once and retain authenticated evidence of both decisions.
+
+### G.5 Revocation and Operational Controls
+-------------------------------------------
+
+Translate principal withdrawal into all affected pending cart/payment operations, including the authenticated bank revocation call where applicable. Require tested ordering between invalidation and irreversible dispatch.
+
+Operator credential withdrawal and customer-mandate withdrawal are different events. Implement and test both where claimed.
+
+A bank's “revoked” status does not establish that every descendant or external adapter has stopped. Conversely, a completed instant transfer is not a failed revocation merely because it cannot be undone. Record whether execution preceded withdrawal and use a separate refund or recovery process where available.
+
+If AP2 external-agent support is added, apply Appendix F to the selected authorization model and verify the bridge's scope mapping, trust, common budget and lifecycle. Native and AP2 paths must not create separate spendable copies of the same customer allowance.
+
+### G.6 Practical Acceptance Cases
+----------------------------------
+
+| Case | Expected result / distinction |
+|---|---|
+| Permitted EUR 25 grocery basket | Both authority and platform checks permit; current PoC settlement remains simulated |
+| Beer added despite an alcohol exclusion | Trusted mandate scope controls; agent-supplied broader categories cannot override it |
+| Attested EUR 25 basket changed to EUR 40 | Reject mismatched approval/payment binding |
+| Two EUR 40 requests with EUR 50 remaining | At most one consumes the budget; multi-agent support is an extension, not a demonstrated PoC feature |
+| Signed request replay after timeout | One logical operation and payment, with recoverable outcome |
+| Customer revokes before actual dispatch | Block affected payment; distinguish an already irreversible transfer |
+| EUR 55 coffee within broad category limits | Not necessarily an authority violation; exact shopping-list/quantity rules must have been registered |
+| External AP2 agent uses the same allowance | Verify AP2 evidence and authorized mapping; no doubled budget or independent revocation loophole |
+
+These tests apply equally to the proposed Gimel adapter. They are acceptance recipes, not reported results. No claim of superior deployed reliability follows from a more detailed specification. Conformance requires the parent contract, not merely successful happy-path examples.
+
+### G.7 Evidence and Sources
+----------------------------
+
+Read-only documentary review on 16 October 2026; no video viewing, live payment tests or security probes:
+
+- https://docs.s-you.me/ — overview, mocks and AP2/UCP roadmap.
+- https://docs.s-you.me/interfaces — prototype labelled 10 October 2026, including a 15 October presentation decision; §§1.2–1.5, 2.3, 3 and 6 are the principal mapping sources.
+- https://docs.s-you.me/zielbild — public target architecture dated 15 October 2026; explicit current/target distinctions.
+
+These are mutable first-party descriptions. Recheck the implemented edition, production permissions, authentication and regulatory requirements before integration.
+
+Do not infer production Sparkasse deployment, mandatory future adoption, S2 conformance or patent coverage.
+
+
 
 ----
 
