@@ -6,9 +6,9 @@ GiFo-RFC 0170: G-Commerce Integration Profile (CCPE-F)
 
    Gimel Foundation gGmbH i.G.                G. Wehberg, S. Raghuthaman and
    GiFo-Request for Comments: 0170            the Architecture Working Group of
-   Obsoletes: -                                Gimel Foundation
-   Category: Standards Track                   6. May 2026
-   Version: 0.9.1 (Working Draft – Under Vendor Review)
+   Obsoletes: 0.9.1, 6. May 2026              Gimel Foundation
+   Category: Standards Track                  17. October 2026
+   Version: 0.9.2 (Working Draft – Under Vendor Review)
 
 G-Commerce Integration Profile – Combined Credential and Platform bound Enforcement (CCPE-F)
 =============================================================================================
