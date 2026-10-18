@@ -213,7 +213,7 @@ Appendixes:
 * Appendix C — Vendor Cookbook: Amazon Pay (Informative, Preliminary)
 * Appendix D — Vendor Cookbook: Open Banking / PSD2 (Informative, Preliminary)
 * Appendix E — Vendor Cookbook: W3C Payment Request API (Informative, Preliminary)
-* Appendix F — Vendor Cookbook: AP2 (Informative, Preliminary)
+* Appendix F — Protocol Cookbook: AP2 (Informative, Preliminary)
 * Appendix G — Use-Case Cookbook: s-you / EUDIPal Scoped Mandate (Informative, Preliminary)
 
 ----
@@ -325,7 +325,7 @@ baseline, including:
 * GiFo-RFC 0116: GAuth Interoperability — Extended Token / W3C VC
   Representation. Optional VC-form mandate carriage.
 * GiFo-RFC 0117: GAuth PEP Interface. Power-PEP at Phase 1 implements the RFC
-  0117 16-check pipeline; verdict vocabulary aligned with RFC 0117.
+  0117 17-check pipeline; verdict vocabulary aligned with RFC 0117.
 * GiFo-RFC 0118: GAuth Management API. Authority issuance / revocation /
   introspection surface.
 * GiFo-RFC 0160: G-Audit Profile. Audit-event payload baseline for the §3.4
@@ -500,7 +500,7 @@ rewrite its own decisions).
 2.5 The Power-PEP → Commerce-PDP Chain
 --------------------------------------
 
-a) **Phase 1 — Credential-bound enforcement.** Power-PEP runs the 16-check
+a) **Phase 1 — Credential-bound enforcement.** Power-PEP runs the 17-check
    pipeline of RFC 0117 against the active Commerce-Mandate. Verdict ∈ {permit,
    deny, constrain} with optional obligations array. A Phase-1 deny short-
    circuits.
