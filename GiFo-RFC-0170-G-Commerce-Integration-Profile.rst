@@ -6,9 +6,9 @@ GiFo-RFC 0170: G-Commerce Integration Profile (CCPE-F)
 
    Gimel Foundation gGmbH i.G.                G. Wehberg, S. Raghuthaman and
    GiFo-Request for Comments: 0170            the Architecture Working Group of
-   Obsoletes: 0.9.1, 6. May 2026              Gimel Foundation
-   Category: Standards Track                  17. October 2026
-   Version: 0.9.2 (Working Draft – Under Vendor Review)
+   Obsoletes: 0.9.2, 17. October 2026         Gimel Foundation
+   Category: Standards Track                  18. October 2026
+   Version: 0.9.2.1 (Working Draft – Under Vendor Review)
 
 G-Commerce Integration Profile – Combined Credential and Platform bound Enforcement (CCPE-F)
 =============================================================================================
@@ -554,7 +554,7 @@ Sequence diagram (informative)::
    agent       Commerce-PEP        Power-PEP        Commerce-PDP    Console
      │              │                  │                 │             │
      │── action ───►│                  │                 │             │
-     │              │── 16-check ─────►│                 │             │
+     │              │── 17-check ─────►│                 │             │
      │              │      (Phase 1: permit | constrain | deny)        │
      │              │◄─────────────────│                 │             │
      │              │                  [if deny: short-circuit]        │
@@ -1409,6 +1409,12 @@ execution.
 
 A test passes through observed enforcement and authenticated evidence,
 not merely through the absence of a local audit event.
+
+Where an informative cookbook describes a native execution response as a
+Phase-2 verdict, that example does not waive the pre-execution requirements
+of §2.5 or this section. The normative parent contract takes precedence;
+such examples require an implementation-specific separation of permission,
+execution and outcome before they can support a conformance claim.
 
 
 3.1.4 Parent-Chain Freshness Bounds
