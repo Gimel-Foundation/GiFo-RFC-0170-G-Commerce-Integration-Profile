@@ -6,9 +6,9 @@ GiFo-RFC 0170: G-Commerce Integration Profile (CCPE-F)
 
    Gimel Foundation gGmbH i.G.                G. Wehberg, S. Raghuthaman and
    GiFo-Request for Comments: 0170            the Architecture Working Group of
-   Obsoletes: 0.9.2, 17. October 2026         Gimel Foundation
-   Category: Standards Track                  18. October 2026
-   Version: 0.9.2.1 (Working Draft – Under Vendor Review)
+   Obsoletes: 0.9.2.1, 18. October 2026         Gimel Foundation
+   Category: Standards Track                  15. November 2026
+   Version: 0.9.2.2 (Working Draft – Under Vendor Review)
 
 G-Commerce Integration Profile – Combined Credential and Platform bound Enforcement (CCPE-F)
 =============================================================================================
@@ -215,6 +215,8 @@ Appendixes:
 * Appendix E — Vendor Cookbook: W3C Payment Request API (Informative, Preliminary)
 * Appendix F — Protocol Cookbook: AP2 (Informative, Preliminary)
 * Appendix G — Use-Case Cookbook: s-you / EUDIPal Scoped Mandate (Informative, Preliminary)
+* Appendix H — Vendor Cookbook: ChatGPT Wallet (Informative, Preliminary)
+
 
 ----
 
@@ -3444,6 +3446,259 @@ not permission for state-changing or adversarial testing.
 
 No production Sparkasse deployment, blanket regulatory compliance, future
 adoption, CCPE-F conformance or patent coverage is inferred.
+
+
+
+
+Appendix H — Vendor Cookbook: ChatGPT Wallet
+============================================
+
+:Status: Informative integration proposal; not vendor-reviewed.
+:Documentation reviewed: 15 November 2026.
+:Scope: Current documented capabilities and their composition with GAuth
+        and G-Commerce. No deployed integration or conformance test is claimed.
+
+H.1 Scope and native architecture
+---------------------------------
+
+ChatGPT Wallet supports agent-assisted purchases using explicit customer
+approval and network payment tokens. The customer reviews the items, total
+and selected card, then approves the purchase with a security check such
+as Face ID or a fingerprint scan. The payment network subsequently supplies
+a token in place of the customer's actual card details. The merchant's
+existing checkout processes the payment [CW1]_.
+
+The merchant retains its order, fulfilment, customer-support and fraud
+decisions. The payment guide states that existing payment forms can accept
+Wallet without a Wallet-specific integration. It prohibits reusing or
+saving the transaction credential for a separate purchase [CW2]_.
+
+These are substantive purchase-authorisation controls. However, neither
+biometric confirmation nor possession of a payment token by itself proves
+the separate principal-to-agent delegation required by G-Commerce.
+
+The composition below preserves the native Wallet experience. It adds
+GAuth enforcement at an integration boundary controlled by the deploying
+merchant or commerce operator; it does not assume changes inside Wallet.
+
+H.2 Two distinct authority artefacts
+------------------------------------
+
+The integration keeps two logically and operationally distinct artefacts:
+
+* **Credential-bound authority:** the GAuth Commerce-Mandate chain, issued
+  under the principal's authority and bound to the agent, scope, validity
+  and mandate ancestry.
+* **Platform-bound permission:** the native merchant checkout or
+  authorisation record, with its payment-method reference, constraints and
+  lifecycle. The network token remains a payment credential, not the
+  Commerce-Mandate.
+
+The Power-PEP evaluates the first under RFC 0117. The Commerce-PDP evaluates
+the second using authenticated merchant/platform state. Their decisions
+are reconciled under RFC 0170: deny takes precedence over constrain, which
+takes precedence over permit; applicable obligations remain enforceable.
+
+Customer approval in Wallet remains required by the current native flow.
+A valid GAuth mandate does not replace that approval. Conversely, Wallet
+approval does not override a denied, expired or revoked GAuth mandate.
+
+The two enforcement phases are distinct from the three commerce phase
+classes: mandate, cart and payment. Each consequential action is evaluated
+against the appropriate class and its required ancestry.
+
+H.3 Merchant-controlled checkout integration
+--------------------------------------------
+
+The directly applicable integration pattern is a G-Commerce-controlled
+merchant checkout. Wallet continues to supply payment through the existing
+checkout; the merchant adds the authority gate before any request that can
+create an order or financial commitment.
+
+The merchant or its integration operator supplies:
+
+* a channel for receiving and verifying the Commerce-Mandate;
+* binding between that mandate, the authenticated agent session and the
+  exact cart, merchant, amount, currency and payment-method reference;
+* the Commerce-PEP and a platform-side Commerce-PDP;
+* server-side enforcement across all purchase routes, including direct
+  form submission and alternative checkout endpoints;
+* authenticated transaction-state retrieval and correlated audit records.
+
+For the normative RFC 0170 integration, the operator implements the UCP
+capability contract, including
+``com.gimel.gauth.commerce_mandate``, as specified in Section 4.
+This is an integration addition, not a claim that ChatGPT Wallet currently
+discovers or invokes that capability.
+
+The mandate may arrive through an authenticated companion workflow operated
+by the deployer. A browser session identifier alone is insufficient: the
+integration must establish the agent binding and proof required by the
+mandate. If the current agent-facing interfaces cannot supply that proof,
+the checkout cannot claim a conformant G-Commerce transaction.
+
+This pattern governs the participating merchant's checkout. It does not
+govern the agent's purchases at unrelated merchants.
+
+H.4 Plugin and tool-mediated integration
+----------------------------------------
+
+The Commerce Partner Playbook also describes plugins and agent-facing
+tools for interactions such as availability checks and cart management
+[CW1]_ [CW3]_.
+
+Where the deployer controls such an endpoint, it can place the same
+G-Commerce checks before consequential operations. The endpoint must bind
+the verified mandate to the tool request and ensuing checkout session;
+it must not trust a mandate identifier merely asserted in natural language.
+
+A plugin is an alternative entry point to the governed commerce runtime,
+not evidence that Wallet exposes a token-issuance or approval-verification
+API. Plugin-side checks do not protect an unguarded browser checkout.
+All routes capable of committing the governed purchase require equivalent
+server-side enforcement.
+
+Web Bot Auth and forwarded customer-context signals can assist origin
+recognition and fraud analysis. They do not replace the principal's
+delegation credential or establish its scope.
+
+H.5 Purchase sequence and enforcement
+-------------------------------------
+
+An illustrative composition is::
+
+   Principal
+       |
+       v
+   GAuth Authority
+       |  mandate -> cart -> payment
+       v
+   Governed merchant checkout / Commerce-PEP
+       |
+       +--> Power-PEP: Phase 1 delegated-authority decision
+       |        |
+       |        +-- deny: stop; do not invoke Phase 2
+       |
+       +--> Commerce-PDP: Phase 2 native platform decision
+       |
+       v
+   Reconcile decisions and satisfy obligations
+       |
+       v
+   Controlled order/payment dispatch
+       |
+       v
+   Native payment processing and outcome recording
+
+Wallet customer approval and token provision remain native prerequisites
+of payment. Their timing is not controlled by this diagram. The integration
+does not claim to intercept Wallet's internal biometric or token-issuance
+steps. The ordered Phase 1 / Phase 2 chain applies at the controlled
+merchant action boundary.
+
+For a principal authorising office supplies up to USD 100:
+
+1. The Authority issues a mandate identifying the agent, permitted merchant,
+   scope and validity.
+2. A USD 72 cart is bound to a cart mandate and its parent.
+3. A payment mandate binds the cart to the permitted payment-method
+   reference and single-use conditions.
+4. Before purchase commitment, Phase 1 verifies the chain, freshness,
+   revocation state and applicable budget constraints.
+5. Phase 2 evaluates the merchant's authenticated checkout state and
+   applicable platform permission. Required native payment controls remain
+   in force.
+6. The runtime dispatches only the action permitted by the reconciled
+   decision and satisfied obligations, then records the native outcome.
+
+Where native approval is available only through a call that itself creates
+a commitment, that call cannot be used as an after-the-fact substitute for
+the required pre-dispatch platform decision. The adapter must identify a
+valid pre-dispatch permission boundary or restrict its conformance claim.
+
+A change to the cart, payee, amount, currency or payment method requires
+re-evaluation and any renewed native approval required by the payment flow.
+Waiting for customer approval does not suspend mandate expiry or revocation.
+
+H.6 Evidence, lifecycle and failure handling
+--------------------------------------------
+
+The runtime correlates mandate ancestry and both enforcement decisions
+with checkout, order and payment identifiers. It emits the decision,
+failure and metering records required by RFC 0170, including
+``commerce.action_decided``, ``commerce.platform_bound.decided`` and
+``commerce.decision.metered`` where applicable.
+
+The GAuth evidence store carries authorised payment references, not actual
+card details, token security codes or biometric material. Native approval
+records are linked only where an authenticated interface makes them
+available; the current public sources do not specify a generally available
+Wallet approval-record verification API.
+
+Revocation blocks subsequent controlled actions and triggers supported
+cancellation operations on in-flight merchant/provider artefacts.
+Cancellation, refund and dispute handling are distinct operations.
+Revocation does not reverse an already settled payment.
+
+Retries require durable request correlation and duplicate-execution
+protection. An uncertain payment outcome is reconciled with authoritative
+provider state before another charge is attempted. Missing authority or
+required evidence prevents commitment; platform timeouts follow the
+RFC's declared failure disposition and reporting requirements.
+
+The payment guide permits subscriptions through checkout flows supporting
+recurring billing with customer consent [CW2]_. This does not authorise
+reuse for unrelated purchases. Any covered later charge requires an
+explicit mandate scope and an identified merchant-side enforcement point.
+
+H.7 Integration limits and verification
+---------------------------------------
+
+Current documentation establishes native transaction approval and
+tokenised payment, but does not establish native implementation of the
+RFC 0170 mandate envelope, capability contract or revocation cascade.
+Those functions are supplied by the proposed integration.
+
+Two separate records or software components alone do not establish S2.
+A conformance claim requires the complete RFC 0170 contract, including
+agent binding, ordered enforcement, lifecycle handling and audit evidence.
+
+Before making that claim, verify that:
+
+* Phase-1 denial stops dispatch and cannot be bypassed by Wallet approval.
+* Native platform denial cannot be overridden by a valid mandate.
+* Direct checkout and tool routes cannot bypass the enforcement point.
+* Changed purchase details invalidate stale authority bindings.
+* Expiry and revocation stop actions still under integration control.
+* Retries do not create duplicate orders or payments.
+* Required authority, platform and outcome evidence can be correlated.
+
+No undocumented Wallet callback, mandate-carriage field, token-revocation
+endpoint or approval API is assumed. A generic purchase through an
+unmodified third-party checkout does not become G-Commerce-conformant
+merely because the customer uses Wallet.
+
+H.8 Status and rights
+---------------------
+
+This cookbook describes an informative composition of current documented
+Wallet capabilities with the G-Commerce integration pattern. It is not
+an OpenAI implementation specification, certification or endorsement.
+The existing RFC legal notices apply; third-party services, specifications
+and marks retain their applicable rights. No conclusion concerning patent
+priority, infringement or freedom to operate follows from this mapping.
+
+H.9 Informative references
+--------------------------
+
+.. [CW1] OpenAI, "Introducing ChatGPT Wallet", 13 November 2026.
+   https://openai.com/index/introducing-chatgpt-wallet/
+
+.. [CW2] OpenAI, "Commerce Partner Playbook — Accept payments".
+   https://developers.openai.com/commerce/guides/accept-payments
+
+.. [CW3] OpenAI, "Commerce Partner Playbook".
+   https://developers.openai.com/commerce
 
 
 ----
