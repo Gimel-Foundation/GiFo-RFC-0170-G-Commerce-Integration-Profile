@@ -6,9 +6,9 @@ GiFo-RFC 0170: G-Commerce Integration Profile (CCPE-F)
 
    Gimel Foundation gGmbH i.G.                G. Wehberg, S. Raghuthaman and
    GiFo-Request for Comments: 0170            the Architecture Working Group of
-   Obsoletes: 0.9.2.1, 18. October 2026         Gimel Foundation
-   Category: Standards Track                  15. November 2026
-   Version: 0.9.2.2 (Working Draft – Under Vendor Review)
+   Obsoletes: 0.9.2.2, 15. November 2026         Gimel Foundation
+   Category: Standards Track                  18. November 2026
+   Version: 0.9.2.3 (Working Draft – Under Vendor Review)
 
 G-Commerce Integration Profile – Combined Credential and Platform bound Enforcement (CCPE-F)
 =============================================================================================
@@ -216,6 +216,8 @@ Appendixes:
 * Appendix F — Protocol Cookbook: AP2 (Informative, Preliminary)
 * Appendix G — Use-Case Cookbook: s-you / EUDIPal Scoped Mandate (Informative, Preliminary)
 * Appendix H — Vendor Cookbook: ChatGPT Wallet (Informative, Preliminary)
+* Appendix I — Vendor Cookbook: Mastercard Verifiable Intent (Informative, Preliminary)
+
 
 
 ----
@@ -3699,6 +3701,281 @@ H.9 Informative references
 
 .. [CW3] OpenAI, "Commerce Partner Playbook".
    https://developers.openai.com/commerce
+
+
+
+
+
+Appendix I — Vendor Cookbook: Mastercard Verifiable Intent
+=========================================================
+
+:Status: Informative integration proposal; not vendor-reviewed.
+:Evidence basis: Verifiable Intent v0.1 at the revision cited in [MC1]_,
+                 evaluated in GiFo-RFC 0171.
+:Scope: Composition with GAuth and CCPE-F / G-Commerce.
+        No deployed integration or Mastercard certification is claimed.
+
+I.1 Scope and documented mechanisms
+-----------------------------------
+
+Mastercard Verifiable Intent (VI) describes a layered cryptographic
+structure comprising an L1 credential, L2 user intent and L3 agent
+fulfilment. The reviewed specification distinguishes immediate and
+autonomous modes and describes network-enforced cumulative constraints
+[MC1]_.
+
+These mechanisms provide substantive evidence of delegated intent and
+transaction binding. VI is therefore not treated here as merely agent
+identification or payment-token transport.
+
+However, the reviewed v0.1 specification defers VI-layer credential
+revocation. Its documented mechanisms do not establish the complete
+organisational delegation, ancestor-state freshness, independent
+revocation and shared-budget lifecycle required by G-Commerce.
+GiFo-RFC 0171 records these evidence boundaries without assigning a
+brand-wide S2 or S3 classification.
+
+This cookbook addresses VI-bearing commerce flows. It does not assume
+that every Mastercard Agent Pay deployment implements VI, nor that
+Agent Pay for Machines supplies the same interfaces or guarantees.
+Product announcements are not used as implementation evidence.
+
+I.2 Two distinct authority sources
+----------------------------------
+
+The proposed composition preserves:
+
+* **GAuth authority:** the principal-issued Commerce-Mandate and its
+  mandate, cart and payment parent chain, evaluated in Phase 1.
+* **Commerce permission:** the independently evaluated permission of
+  the selected merchant, payment platform and payment-network flow,
+  represented by its native authenticated artefacts and decisions.
+
+VI supplies additional signed identity, intent and fulfilment evidence.
+It is not reduced to a payment token, but neither is its three-layer
+structure assumed to implement the G-Commerce three-phase parent chain.
+
+In particular, L1, L2 and L3 are not automatically equivalent to
+mandate-class, cart-class and payment-class Commerce-Mandates.
+A deployment documents their semantic correspondence and verifies
+their bindings rather than renaming fields or layers.
+
+The integration retains a discrete GAuth authority decision that
+downstream commerce permission cannot override. A GAuth permit does
+not, conversely, oblige the merchant, issuer or network to approve
+the transaction.
+
+I.3 Deployment boundary
+-----------------------
+
+The proposed enforcement boundary is a merchant-controlled checkout
+service or payment-orchestration service through which all protected
+agent purchases pass.
+
+The deployment supplies:
+
+* a Power-PEP implementing the RFC 0117 Phase 1 checks;
+* a Commerce-PEP and Commerce-PDP integration;
+* verification of the VI evidence available to that participant;
+* the RFC 0170 UCP capability
+  ``com.gimel.gauth.commerce_mandate``;
+* bindings between the mandate, VI evidence, exact order and native
+  payment transaction;
+* lifecycle, budget and audit services required by this RFC.
+
+These are integration responsibilities, not claims of native
+Mastercard functionality. Native VI or Agent Pay support for the
+G-Commerce UCP capability is not assumed.
+
+Where an enrolled participant cannot obtain the evidence or intercept
+the relevant action before commitment, this cookbook does not establish
+conformance for that boundary.
+
+I.4 Proposed request sequence
+-----------------------------
+
+The following sequence applies at each relevant protected action::
+
+    Agent request
+    + GAuth Commerce-Mandate
+    + available VI evidence
+                |
+                v
+          GAuth Power-PEP
+       Phase 1 authority checks
+                |
+       permit or constrain
+                |
+                v
+         Commerce-PDP adapter
+       Phase 2 commerce checks
+       + VI evidence verification
+                |
+       verdict + obligations
+                |
+                v
+       Combined enforcement
+                |
+                v
+       Native payment execution
+                |
+                v
+       Outcome and reconciliation
+
+1. The principal issues a Commerce-Mandate specifying the permitted
+   agent, purpose, merchants, scope, budget and validity period.
+   Applicable organisational delegation is retained in its parent chain.
+
+2. Cart and payment descendants narrow that authority to the selected
+   order and payment action. VI evidence is associated with the same
+   transaction without replacing the Commerce-Mandate chain.
+
+3. Phase 1 verifies the credential, acting-agent binding, parent-chain
+   scope, applicable restrictions, current authority state and budget.
+   A denial stops processing before Phase 2.
+
+4. Phase 2 verifies the applicable commerce conditions and native
+   evidence, including VI signatures, constraints and fulfilment
+   bindings where exposed by the selected integration. The deployment
+   identifies which participant verifies each element.
+
+5. The Power-PEP reconciles both decisions under this RFC's combination
+   rules. Native permission cannot widen Phase 1 authority. Obligations
+   are enforced before the protected operation proceeds.
+
+6. Immediately before dispatch, the deployment checks that the action
+   still matches the authorised order and that the required authority
+   freshness, reservation and validity conditions remain satisfied.
+
+7. The native payment flow executes and its authenticated outcome is
+   correlated with the authority decision and reservation.
+
+This sequence does not claim control over Mastercard's internal
+processing order. A call that already authorises, captures or otherwise
+commits a payment is treated as a protected action, not as a harmless
+preliminary check. Where such a call also determines native permission,
+the integration documents that boundary and does not describe a
+post-commit response as a pre-execution Phase 2 verdict.
+
+I.5 Example: bounded laboratory procurement
+-------------------------------------------
+
+A principal authorises a procurement agent to buy specified laboratory
+consumables from approved merchants, up to EUR 1,000 before a stated
+expiry time.
+
+The agent selects a EUR 240 order. The cart-class and payment-class
+Commerce-Mandates bind that order to its merchant, contents, amount,
+currency and payment action. Corresponding VI evidence is verified
+against the same transaction.
+
+Phase 1 establishes that the purchase remains within the principal's
+delegation and available budget. Phase 2 establishes that the merchant
+and payment flow permit the transaction and that the relevant native
+constraints are satisfied.
+
+A changed merchant, increased total or substituted product requires
+fresh evaluation against the applicable scope. The presence of a valid
+VI signature or an available payment credential does not waive those
+checks.
+
+Where VI and GAuth impose different limits, the transaction must
+satisfy both. Neither system's limit silently replaces the other's.
+
+I.6 Revocation, budgets and recovery
+------------------------------------
+
+GAuth authority revocation remains independent of payment-credential
+management. Revoking a Commerce-Mandate blocks subsequent protected
+actions and invalidates affected descendants according to this RFC.
+
+This does not imply that GAuth can revoke a Mastercard credential,
+reverse settlement or cancel an already accepted payment. Native
+cancellation, void and refund operations use the interfaces actually
+available to the enrolled participant.
+
+Network-enforced cumulative constraints and GAuth shared-budget
+accounting serve related but distinct purposes. The deployment retains
+the common-ancestor reservation and reconciliation controls required
+for concurrent agents; a network limit is not assumed to implement
+those controls.
+
+For payment-class actions, unavailable authority state, failed required
+verification or Phase 2 timeout follows this RFC's fail disposition
+and does not create permission.
+
+A timeout after dispatch is an ambiguous outcome, not proof that no
+payment occurred. The orchestrator reconciles native transaction state
+before retrying, releasing a reservation or issuing another payment.
+Idempotency identifies the same logical operation across retries.
+
+I.7 Evidence and acceptance checks
+----------------------------------
+
+The correlated audit record identifies:
+
+* the principal, agent and relevant Commerce-Mandate chain;
+* the Phase 1 decision and authority-state freshness;
+* references or digests for the verified VI artefacts;
+* the merchant, order digest, amount and currency;
+* the Phase 2 decision and enforced obligations;
+* the budget reservation and idempotency reference;
+* the final enforcement decision and native transaction outcome.
+
+Sensitive payment credentials and unnecessary personal data are not
+copied into the general audit trail. Evidence storage follows the
+applicable access, retention and payment-security requirements.
+
+Integration verification includes:
+
+* valid native payment permission with a revoked GAuth mandate:
+  no protected dispatch;
+* valid GAuth authority with failed VI or commerce verification:
+  no protected dispatch;
+* mismatched merchant, order, amount, currency or agent binding:
+  rejection or fresh authorisation;
+* concurrent purchases exceeding a shared parent budget:
+  no excess aggregate commitment;
+* duplicate requests or lost responses:
+  one logical payment and reconciled budget accounting;
+* stale authority evidence or an unmediated execution route:
+  no conformance claim until resolved.
+
+I.8 Conformance and rights boundary
+-----------------------------------
+
+The intended architecture is S2: independently verifiable delegated
+authority and commerce permission, reconciled before the protected
+action. VI layer count alone does not establish or disprove S2.
+
+The cookbook does not create a new Mastercard-specific conformance
+class. Full conformance remains subject to this RFC's applicable
+credential, UCP capability, lifecycle, enforcement and audit provisions.
+
+This appendix grants no Mastercard product access, network enrolment,
+certification or third-party intellectual-property rights. Applicable
+Gimel licensing terms and exclusions remain unchanged. Architectural
+comparison is not a patent-coverage or infringement determination.
+
+I.9 References
+--------------
+
+.. [MC1] Verifiable Intent v0.1, immutable specification revision
+   reviewed in GiFo-RFC 0171. In particular: Definitions, Layered
+   Credential Architecture and Threats.
+
+   https://github.com/agent-intent/verifiable-intent/blob/356c29635f1c44df7de02edb58699ca9f29bece6/spec/README.md
+
+.. [MC2] GiFo-RFC 0171, Agentic Commerce / Payment Authorization
+   Evaluation: Mastercard Verifiable Intent assessment and
+   Appendix E.3.9. Its evidence limits apply to the reviewed version,
+   not automatically to subsequent implementations.
+
+.. [MC3] GiFo-RFC 0115, PoA Credential; GiFo-RFC 0117, GAuth
+   Policy Enforcement Point Interface; and this RFC's Commerce-Mandate,
+   lifecycle, enforcement, UCP capability and audit provisions.
+```
+
 
 
 ----
